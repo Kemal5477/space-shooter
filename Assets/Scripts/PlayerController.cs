@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections;
 
 public class PlayerController : MonoBehaviour
 {
@@ -9,10 +10,19 @@ public class PlayerController : MonoBehaviour
     Vector2 yBounds=new(-3.8f,-2.0f);
 
     [SerializeField] GameObject laserPrefab;
+    [SerializeField] GameObject tripleLaserPrefab;
     [SerializeField] Transform firePoint;
 
-    [SerializeField] float fireRate = 0.5f; // İki ateş arasındaki bekleme süresi (saniye)
+    [SerializeField] float fireRate = 0.15f; // İki ateş arasındaki bekleme süresi (saniye)
     float nextFireTime = 0f;
+
+     [SerializeField] int currentLives=3;
+
+     [SerializeField] bool isTripleShot=false;
+      [SerializeField] int bonusDisableWaitTime=5;
+
+
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -44,16 +54,43 @@ public class PlayerController : MonoBehaviour
    public void OnFire()
 {if (Time.time >= nextFireTime)
         {
-            Debug.Log("Fire!");
-            Instantiate(laserPrefab, firePoint.position, firePoint.rotation);
+            if(isTripleShot){
+               Instantiate(tripleLaserPrefab, this.transform.position, Quaternion.identity);
+            }
+            else{
+                Instantiate(laserPrefab, firePoint.position, firePoint.rotation);
 
-            // Bir sonraki atış hakkını şimdiki zaman + cooldown süresi olarak güncelliyoruz
-            nextFireTime = Time.time + fireRate;
+            }
+            nextFireTime = Time.time + fireRate;//bir sonraki ateş edilebilir zaman
+        }
+       
+}
+public void TakeDamage(){
+    currentLives--;
+
+    if(currentLives == 0){
+        SpawnManager_sc sm;
+        sm = GameObject.Find("SpawnManager").GetComponent<SpawnManager_sc>();
+        if(sm==null){
+            Debug.LogError("PlayerController::TakeDamage sm is NULL");
         }
         else
-        {
-            // İsterseniz bekleme süresindeyken konsola bilgi basabilirsiniz (isteğe bağlı)
-            // Debug.Log("Lazer henüz hazır değil!");
-        }
+    {
+        sm.OnPlayerDeath();
+    }
+        
+        Destroy(this.gameObject);
+    }
+}
+public void EnableTripleShot(){
+    isTripleShot=true;
+    StartCoroutine(DisableTripleShotRoutine());
+
+    // bu durum geçici olmalı ve x saniye sonra iptal edilmeli
+}
+IEnumerator DisableTripleShotRoutine(){
+
+    yield return new WaitForSeconds(bonusDisableWaitTime);
+    isTripleShot=false;
 }
 }
